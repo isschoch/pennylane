@@ -35,7 +35,7 @@ import importlib
 
 from . import cost
 
-class_map = {"KerasLayer": "keras", "TorchLayer": "torch"}
+class_map = {"QuantumConvolutionalLayer" : "keras", "KerasLayer": "keras", "TorchLayer": "torch"}
 mods = ("keras", "torch")
 
 
