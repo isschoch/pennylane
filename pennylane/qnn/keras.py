@@ -331,8 +331,7 @@ class KerasLayer(Layer):
         ``"inputs"``."""
         return self._input_arg
 
-
-class QuantumConvolutionalLayer(Layer):
+class KerasConv2D(KerasLayer):    
     """Quantum Convolutional Layer.
     A Keras Tensorflow implementation of a trainable quantum convolutional neural network.
     Args:
@@ -344,7 +343,7 @@ class QuantumConvolutionalLayer(Layer):
         dilation_rate (int or tuple): Dilation rate, i.e. number of pixels skipped by kernel, of convolution.
         weight_initializer (see keras.initializers): Initializer for the weights of the qnode. Defaults to "glorot_uniform".
     """
-
+    
     def __init__(
         self,
         qnode,
@@ -365,64 +364,9 @@ class QuantumConvolutionalLayer(Layer):
         self.kernel_size = _integer_tuple_handler(kernel_size)
         self.dilation_rate = _integer_tuple_handler(dilation_rate)
         self.padding = padding
-
         self.strides = strides
 
-        self.weight_shapes = {
-            weight: (
-                tuple(size)
-                if isinstance(size, Iterable)
-                else (size,)
-                if size > 1
-                else ()
-            )
-            for weight, size in weight_shapes.items()
-        }
-        self.weight_specs = weight_specs if weight_specs is not None else {}
-        self.qnode = qnode
-        self.qnode_weights = {}
-
-        super().__init__(dynamic=True, **kwargs)
-
-    def build(self, input_shape):
-        """Initializes the QNode weights.
-
-        Args:
-            input_shape (tuple or tf.TensorShape): shape of input data
-        """
-        for weight, size in self.weight_shapes.items():
-            spec = self.weight_specs.get(weight, {})
-            self.qnode_weights[weight] = self.add_weight(
-                name=weight, shape=size, **spec
-            )
-
-        super().build(input_shape)
-
-    def _evaluate_qnode(self, x):
-        """Evaluates a QNode for a single patch.
-
-        Args:
-            x (tensor): the patch
-
-        Returns:
-            tensor: output covolution of patch
-        """
-        kwargs = {
-            **{self.input_arg: x},
-            **{k: 1.0 * w for k, w in self.qnode_weights.items()},
-        }
-        return self.qnode(**kwargs)
-
-    def draw(self):
-        """Draws Qnode associated to QCNN.
-
-        Args:
-            inputs (tensor): data to be processed
-
-        Returns:
-            tensor: output data
-        """
-        print(self.qnode.qnode.draw())
+        super().__init__(qnode, weight_shapes, kernel_size[0] * kernel_size[1], weight_specs, **kwargs)
 
     def call(self, inputs):
         """Evaluates the QNode on input data using the initialized weights.
@@ -447,12 +391,5 @@ class QuantumConvolutionalLayer(Layer):
             ),
             patches,
         )
-
-    _input_arg = "inputs"
-
-    @property
-    def input_arg(self):
-        """Name of the argument to be used as the input to the Keras
-        `Layer <https://www.tensorflow.org/api_docs/python/tf/keras/layers/Layer>`__. Set to
-        ``"inputs"``."""
-        return self._input_arg
+    
+    compute_output_shape = property(doc='(!) Disallowed inherited')
